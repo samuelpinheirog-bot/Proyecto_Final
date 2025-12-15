@@ -1,6 +1,6 @@
 import tkinter as tk
-from tkinter import messagebox
-from utils import validar_nombre, validar_precio, validar_cantidad
+from tkinter import messagebox, simpledialog, ttk
+from inventory import Inventario
 
 
 class SistemaGestionStock:
@@ -12,6 +12,9 @@ class SistemaGestionStock:
         self.root.title("Sistema de Gestión de Stock")
         self.root.geometry("500x600")
         self.root.resizable(False, False)
+        
+        # Inicializar inventario
+        self.inventario = Inventario()
         
         # Configurar colores
         self.bg_color = "#f0f0f0"
@@ -102,350 +105,499 @@ class SistemaGestionStock:
     def agregar_producto(self):
         """
         Función para agregar un nuevo producto.
-        Abre una ventana secundaria con formulario de entrada.
         """
-        # Crear ventana secundaria
         ventana = tk.Toplevel(self.root)
         ventana.title("Agregar Producto")
         ventana.geometry("400x300")
         ventana.resizable(False, False)
         ventana.configure(bg=self.bg_color)
         
-        # Centrar la ventana
-        ventana.transient(self.root)
-        ventana.grab_set()
-        
         # Título
-        titulo = tk.Label(
+        tk.Label(
             ventana,
-            text="Agregar Nuevo Producto",
+            text="Nuevo Producto",
             font=("Arial", 14, "bold"),
             bg=self.bg_color
-        )
-        titulo.pack(pady=20)
+        ).pack(pady=20)
         
         # Frame para el formulario
         form_frame = tk.Frame(ventana, bg=self.bg_color)
-        form_frame.pack(padx=30, pady=10)
+        form_frame.pack(padx=40, pady=10)
         
-        # Campo Nombre
-        tk.Label(form_frame, text="Nombre:", font=("Arial", 10), bg=self.bg_color).grid(
-            row=0, column=0, sticky="w", pady=10
-        )
-        entry_nombre = tk.Entry(form_frame, font=("Arial", 10), width=25)
-        entry_nombre.grid(row=0, column=1, pady=10, padx=10)
-        entry_nombre.focus()
+        # Campo nombre
+        tk.Label(form_frame, text="Nombre:", font=("Arial", 10), bg=self.bg_color).grid(row=0, column=0, sticky="w", pady=5)
+        entry_nombre = tk.Entry(form_frame, font=("Arial", 10), width=30)
+        entry_nombre.grid(row=0, column=1, pady=5)
         
-        # Campo Precio
-        tk.Label(form_frame, text="Precio:", font=("Arial", 10), bg=self.bg_color).grid(
-            row=1, column=0, sticky="w", pady=10
-        )
-        entry_precio = tk.Entry(form_frame, font=("Arial", 10), width=25)
-        entry_precio.grid(row=1, column=1, pady=10, padx=10)
+        # Campo precio
+        tk.Label(form_frame, text="Precio:", font=("Arial", 10), bg=self.bg_color).grid(row=1, column=0, sticky="w", pady=5)
+        entry_precio = tk.Entry(form_frame, font=("Arial", 10), width=30)
+        entry_precio.grid(row=1, column=1, pady=5)
         
-        # Campo Cantidad
-        tk.Label(form_frame, text="Cantidad:", font=("Arial", 10), bg=self.bg_color).grid(
-            row=2, column=0, sticky="w", pady=10
-        )
-        entry_cantidad = tk.Entry(form_frame, font=("Arial", 10), width=25)
-        entry_cantidad.grid(row=2, column=1, pady=10, padx=10)
+        # Campo cantidad
+        tk.Label(form_frame, text="Cantidad:", font=("Arial", 10), bg=self.bg_color).grid(row=2, column=0, sticky="w", pady=5)
+        entry_cantidad = tk.Entry(form_frame, font=("Arial", 10), width=30)
+        entry_cantidad.grid(row=2, column=1, pady=5)
         
-        # Frame para botones
-        button_frame = tk.Frame(ventana, bg=self.bg_color)
-        button_frame.pack(pady=20)
-        
-        def guardar_producto():
-            """Valida y guarda el producto."""
-            nombre = entry_nombre.get()
-            precio_str = entry_precio.get()
-            cantidad_str = entry_cantidad.get()
+        def guardar():
+            nombre = entry_nombre.get().strip()
+            precio_str = entry_precio.get().strip()
+            cantidad_str = entry_cantidad.get().strip()
             
-            # Validar nombre
-            valido, mensaje = validar_nombre(nombre)
-            if not valido:
-                messagebox.showerror("Error de Validación", mensaje, parent=ventana)
-                entry_nombre.focus()
+            if not nombre or not precio_str or not cantidad_str:
+                messagebox.showerror("Error", "Todos los campos son obligatorios")
                 return
             
-            # Validar precio
-            valido, resultado = validar_precio(precio_str)
-            if not valido:
-                messagebox.showerror("Error de Validación", resultado, parent=ventana)
-                entry_precio.focus()
-                return
-            precio = resultado
-            
-            # Validar cantidad
-            valido, resultado = validar_cantidad(cantidad_str)
-            if not valido:
-                messagebox.showerror("Error de Validación", resultado, parent=ventana)
-                entry_cantidad.focus()
-                return
-            cantidad = resultado
-            
-            # Si todas las validaciones pasaron
-            messagebox.showinfo(
-                "Éxito",
-                f"Producto agregado correctamente:\n\n"
-                f"Nombre: {nombre.strip()}\n"
-                f"Precio: ${precio:.2f}\n"
-                f"Cantidad: {cantidad}",
-                parent=ventana
-            )
-            ventana.destroy()
+            try:
+                precio = float(precio_str)
+                cantidad = int(cantidad_str)
+                
+                if precio <= 0 or cantidad < 0:
+                    messagebox.showerror("Error", "El precio debe ser mayor a 0 y la cantidad no puede ser negativa")
+                    return
+                
+                self.inventario.agregar_producto(nombre, precio, cantidad)
+                messagebox.showinfo("Éxito", f"Producto '{nombre}' agregado correctamente")
+                ventana.destroy()
+                
+            except ValueError:
+                messagebox.showerror("Error", "Precio y cantidad deben ser números válidos")
         
-        # Botón Guardar
-        btn_guardar = tk.Button(
-            button_frame,
+        # Botones
+        btn_frame = tk.Frame(ventana, bg=self.bg_color)
+        btn_frame.pack(pady=20)
+        
+        tk.Button(
+            btn_frame,
             text="Guardar",
-            command=guardar_producto,
-            font=("Arial", 10, "bold"),
-            bg="#27ae60",
+            command=guardar,
+            bg=self.button_color,
             fg="white",
+            font=("Arial", 10),
             width=12,
             cursor="hand2"
-        )
-        btn_guardar.pack(side=tk.LEFT, padx=5)
+        ).pack(side=tk.LEFT, padx=5)
         
-        # Botón Cancelar
-        btn_cancelar = tk.Button(
-            button_frame,
+        tk.Button(
+            btn_frame,
             text="Cancelar",
             command=ventana.destroy,
-            font=("Arial", 10),
             bg="#95a5a6",
             fg="white",
+            font=("Arial", 10),
             width=12,
             cursor="hand2"
-        )
-        btn_cancelar.pack(side=tk.LEFT, padx=5)
+        ).pack(side=tk.LEFT, padx=5)
     
     def ver_inventario(self):
         """
         Función para ver todos los productos del inventario.
         """
-        messagebox.showinfo(
-            "Ver Inventario",
-            "Funcionalidad 'Ver Inventario'\n(Pendiente de implementación)"
+        productos = self.inventario.obtener_productos()
+        
+        if not productos:
+            messagebox.showinfo("Inventario Vacío", "No hay productos en el inventario")
+            return
+        
+        ventana = tk.Toplevel(self.root)
+        ventana.title("Ver Inventario")
+        ventana.geometry("700x500")
+        ventana.configure(bg=self.bg_color)
+        
+        # Título
+        tk.Label(
+            ventana,
+            text="Inventario de Productos",
+            font=("Arial", 14, "bold"),
+            bg=self.bg_color
+        ).pack(pady=15)
+        
+        # Frame para la tabla
+        frame = tk.Frame(ventana)
+        frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+        
+        # Scrollbar
+        scrollbar = tk.Scrollbar(frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Treeview
+        tree = ttk.Treeview(
+            frame,
+            columns=("Nombre", "Precio", "Cantidad", "Total"),
+            show="headings",
+            yscrollcommand=scrollbar.set
         )
+        scrollbar.config(command=tree.yview)
+        
+        # Configurar columnas
+        tree.heading("Nombre", text="Nombre")
+        tree.heading("Precio", text="Precio ($)")
+        tree.heading("Cantidad", text="Cantidad")
+        tree.heading("Total", text="Valor Total ($)")
+        
+        tree.column("Nombre", width=250)
+        tree.column("Precio", width=100, anchor="center")
+        tree.column("Cantidad", width=100, anchor="center")
+        tree.column("Total", width=120, anchor="center")
+        
+        # Agregar productos
+        for producto in productos:
+            total = producto["precio"] * producto["cantidad"]
+            tree.insert("", tk.END, values=(
+                producto["nombre"],
+                f"{producto['precio']:.2f}",
+                producto["cantidad"],
+                f"{total:.2f}"
+            ))
+        
+        tree.pack(fill=tk.BOTH, expand=True)
+        
+        # Resumen
+        total_productos = self.inventario.obtener_total_productos()
+        total_unidades = self.inventario.obtener_cantidad_total()
+        valor_total = self.inventario.obtener_valor_total()
+        
+        resumen_frame = tk.Frame(ventana, bg=self.bg_color)
+        resumen_frame.pack(pady=10)
+        
+        tk.Label(
+            resumen_frame,
+            text=f"Total productos: {total_productos} | Total unidades: {total_unidades} | Valor total: ${valor_total:.2f}",
+            font=("Arial", 10, "bold"),
+            bg=self.bg_color
+        ).pack()
     
     def actualizar_stock(self):
         """
         Función para actualizar el stock de un producto.
-        Abre una ventana secundaria con formulario de entrada.
         """
-        # Crear ventana secundaria
+        productos = self.inventario.obtener_productos()
+        
+        if not productos:
+            messagebox.showinfo("Inventario Vacío", "No hay productos en el inventario")
+            return
+        
         ventana = tk.Toplevel(self.root)
         ventana.title("Actualizar Stock")
         ventana.geometry("400x250")
         ventana.resizable(False, False)
         ventana.configure(bg=self.bg_color)
         
-        # Centrar la ventana
-        ventana.transient(self.root)
-        ventana.grab_set()
-        
-        # Título
-        titulo = tk.Label(
+        tk.Label(
             ventana,
-            text="Actualizar Stock de Producto",
+            text="Actualizar Stock",
             font=("Arial", 14, "bold"),
             bg=self.bg_color
-        )
-        titulo.pack(pady=20)
+        ).pack(pady=20)
         
-        # Frame para el formulario
         form_frame = tk.Frame(ventana, bg=self.bg_color)
-        form_frame.pack(padx=30, pady=10)
+        form_frame.pack(padx=40, pady=10)
         
-        # Campo Nombre del producto
-        tk.Label(form_frame, text="Nombre del Producto:", font=("Arial", 10), bg=self.bg_color).grid(
-            row=0, column=0, sticky="w", pady=10
+        tk.Label(form_frame, text="Producto:", font=("Arial", 10), bg=self.bg_color).grid(row=0, column=0, sticky="w", pady=5)
+        
+        combo_productos = ttk.Combobox(
+            form_frame,
+            values=[p["nombre"] for p in productos],
+            font=("Arial", 10),
+            width=28,
+            state="readonly"
         )
-        entry_nombre = tk.Entry(form_frame, font=("Arial", 10), width=25)
-        entry_nombre.grid(row=0, column=1, pady=10, padx=10)
-        entry_nombre.focus()
+        combo_productos.grid(row=0, column=1, pady=5)
         
-        # Campo Nueva Cantidad
-        tk.Label(form_frame, text="Nueva Cantidad:", font=("Arial", 10), bg=self.bg_color).grid(
-            row=1, column=0, sticky="w", pady=10
-        )
-        entry_cantidad = tk.Entry(form_frame, font=("Arial", 10), width=25)
-        entry_cantidad.grid(row=1, column=1, pady=10, padx=10)
-        
-        # Frame para botones
-        button_frame = tk.Frame(ventana, bg=self.bg_color)
-        button_frame.pack(pady=20)
+        tk.Label(form_frame, text="Nueva Cantidad:", font=("Arial", 10), bg=self.bg_color).grid(row=1, column=0, sticky="w", pady=5)
+        entry_cantidad = tk.Entry(form_frame, font=("Arial", 10), width=30)
+        entry_cantidad.grid(row=1, column=1, pady=5)
         
         def actualizar():
-            """Valida y actualiza el stock."""
-            nombre = entry_nombre.get()
-            cantidad_str = entry_cantidad.get()
+            nombre = combo_productos.get()
+            cantidad_str = entry_cantidad.get().strip()
             
-            # Validar nombre
-            valido, mensaje = validar_nombre(nombre)
-            if not valido:
-                messagebox.showerror("Error de Validación", mensaje, parent=ventana)
-                entry_nombre.focus()
+            if not nombre or not cantidad_str:
+                messagebox.showerror("Error", "Debe seleccionar un producto e ingresar una cantidad")
                 return
             
-            # Validar cantidad
-            valido, resultado = validar_cantidad(cantidad_str)
-            if not valido:
-                messagebox.showerror("Error de Validación", resultado, parent=ventana)
-                entry_cantidad.focus()
-                return
-            cantidad = resultado
-            
-            # Si todas las validaciones pasaron
-            messagebox.showinfo(
-                "Éxito",
-                f"Stock actualizado correctamente:\n\n"
-                f"Producto: {nombre.strip()}\n"
-                f"Nueva Cantidad: {cantidad}",
-                parent=ventana
-            )
-            ventana.destroy()
+            try:
+                cantidad = int(cantidad_str)
+                
+                if cantidad < 0:
+                    messagebox.showerror("Error", "La cantidad no puede ser negativa")
+                    return
+                
+                if self.inventario.actualizar_stock(nombre, cantidad):
+                    messagebox.showinfo("Éxito", f"Stock de '{nombre}' actualizado a {cantidad} unidades")
+                    ventana.destroy()
+                else:
+                    messagebox.showerror("Error", "No se pudo actualizar el stock")
+                    
+            except ValueError:
+                messagebox.showerror("Error", "La cantidad debe ser un número válido")
         
-        # Botón Actualizar
-        btn_actualizar = tk.Button(
-            button_frame,
+        btn_frame = tk.Frame(ventana, bg=self.bg_color)
+        btn_frame.pack(pady=20)
+        
+        tk.Button(
+            btn_frame,
             text="Actualizar",
             command=actualizar,
-            font=("Arial", 10, "bold"),
-            bg="#27ae60",
+            bg=self.button_color,
             fg="white",
+            font=("Arial", 10),
             width=12,
             cursor="hand2"
-        )
-        btn_actualizar.pack(side=tk.LEFT, padx=5)
+        ).pack(side=tk.LEFT, padx=5)
         
-        # Botón Cancelar
-        btn_cancelar = tk.Button(
-            button_frame,
+        tk.Button(
+            btn_frame,
             text="Cancelar",
             command=ventana.destroy,
-            font=("Arial", 10),
             bg="#95a5a6",
             fg="white",
+            font=("Arial", 10),
             width=12,
             cursor="hand2"
-        )
-        btn_cancelar.pack(side=tk.LEFT, padx=5)
+        ).pack(side=tk.LEFT, padx=5)
     
     def eliminar_producto(self):
         """
         Función para eliminar un producto del inventario.
         """
-        messagebox.showinfo(
-            "Eliminar Producto",
-            "Funcionalidad 'Eliminar Producto'\n(Pendiente de implementación)"
+        productos = self.inventario.obtener_productos()
+        
+        if not productos:
+            messagebox.showinfo("Inventario Vacío", "No hay productos en el inventario")
+            return
+        
+        ventana = tk.Toplevel(self.root)
+        ventana.title("Eliminar Producto")
+        ventana.geometry("400x200")
+        ventana.resizable(False, False)
+        ventana.configure(bg=self.bg_color)
+        
+        tk.Label(
+            ventana,
+            text="Eliminar Producto",
+            font=("Arial", 14, "bold"),
+            bg=self.bg_color
+        ).pack(pady=20)
+        
+        form_frame = tk.Frame(ventana, bg=self.bg_color)
+        form_frame.pack(padx=40, pady=10)
+        
+        tk.Label(form_frame, text="Seleccione producto:", font=("Arial", 10), bg=self.bg_color).pack(pady=5)
+        
+        combo_productos = ttk.Combobox(
+            form_frame,
+            values=[p["nombre"] for p in productos],
+            font=("Arial", 10),
+            width=35,
+            state="readonly"
         )
+        combo_productos.pack(pady=5)
+        
+        def eliminar():
+            nombre = combo_productos.get()
+            
+            if not nombre:
+                messagebox.showerror("Error", "Debe seleccionar un producto")
+                return
+            
+            respuesta = messagebox.askyesno(
+                "Confirmar",
+                f"¿Está seguro que desea eliminar '{nombre}'?"
+            )
+            
+            if respuesta:
+                if self.inventario.eliminar_producto(nombre):
+                    messagebox.showinfo("Éxito", f"Producto '{nombre}' eliminado correctamente")
+                    ventana.destroy()
+                else:
+                    messagebox.showerror("Error", "No se pudo eliminar el producto")
+        
+        btn_frame = tk.Frame(ventana, bg=self.bg_color)
+        btn_frame.pack(pady=20)
+        
+        tk.Button(
+            btn_frame,
+            text="Eliminar",
+            command=eliminar,
+            bg="#e74c3c",
+            fg="white",
+            font=("Arial", 10),
+            width=12,
+            cursor="hand2"
+        ).pack(side=tk.LEFT, padx=5)
+        
+        tk.Button(
+            btn_frame,
+            text="Cancelar",
+            command=ventana.destroy,
+            bg="#95a5a6",
+            fg="white",
+            font=("Arial", 10),
+            width=12,
+            cursor="hand2"
+        ).pack(side=tk.LEFT, padx=5)
     
     def buscar_producto(self):
         """
         Función para buscar un producto específico.
-        Abre una ventana secundaria con formulario de búsqueda.
         """
-        # Crear ventana secundaria
         ventana = tk.Toplevel(self.root)
         ventana.title("Buscar Producto")
         ventana.geometry("400x200")
         ventana.resizable(False, False)
         ventana.configure(bg=self.bg_color)
         
-        # Centrar la ventana
-        ventana.transient(self.root)
-        ventana.grab_set()
-        
-        # Título
-        titulo = tk.Label(
+        tk.Label(
             ventana,
             text="Buscar Producto",
             font=("Arial", 14, "bold"),
             bg=self.bg_color
-        )
-        titulo.pack(pady=20)
+        ).pack(pady=20)
         
-        # Frame para el formulario
         form_frame = tk.Frame(ventana, bg=self.bg_color)
-        form_frame.pack(padx=30, pady=10)
+        form_frame.pack(padx=40, pady=10)
         
-        # Campo Nombre
-        tk.Label(form_frame, text="Nombre del Producto:", font=("Arial", 10), bg=self.bg_color).grid(
-            row=0, column=0, sticky="w", pady=10
-        )
-        entry_nombre = tk.Entry(form_frame, font=("Arial", 10), width=25)
-        entry_nombre.grid(row=0, column=1, pady=10, padx=10)
-        entry_nombre.focus()
-        
-        # Frame para botones
-        button_frame = tk.Frame(ventana, bg=self.bg_color)
-        button_frame.pack(pady=20)
+        tk.Label(form_frame, text="Nombre del producto:", font=("Arial", 10), bg=self.bg_color).pack(pady=5)
+        entry_nombre = tk.Entry(form_frame, font=("Arial", 10), width=35)
+        entry_nombre.pack(pady=5)
         
         def buscar():
-            """Valida y busca el producto."""
-            nombre = entry_nombre.get()
+            nombre = entry_nombre.get().strip()
             
-            # Validar nombre
-            valido, mensaje = validar_nombre(nombre)
-            if not valido:
-                messagebox.showerror("Error de Validación", mensaje, parent=ventana)
-                entry_nombre.focus()
+            if not nombre:
+                messagebox.showerror("Error", "Debe ingresar un nombre")
                 return
             
-            # Si la validación pasó
-            messagebox.showinfo(
-                "Búsqueda",
-                f"Buscando producto: {nombre.strip()}\n\n"
-                f"(Funcionalidad de búsqueda pendiente de implementación)",
-                parent=ventana
-            )
-            ventana.destroy()
+            producto = self.inventario.buscar_producto(nombre)
+            
+            if producto:
+                mensaje = f"Producto encontrado:\n\n"
+                mensaje += f"Nombre: {producto['nombre']}\n"
+                mensaje += f"Precio: ${producto['precio']:.2f}\n"
+                mensaje += f"Cantidad: {producto['cantidad']} unidades\n"
+                mensaje += f"Valor Total: ${producto['precio'] * producto['cantidad']:.2f}"
+                
+                if self.inventario.tiene_stock_bajo(producto['cantidad']):
+                    mensaje += f"\n\n⚠️ ALERTA: Stock bajo (mínimo: {self.inventario.stock_minimo})"
+                
+                messagebox.showinfo("Producto Encontrado", mensaje)
+            else:
+                messagebox.showwarning("No Encontrado", f"No se encontró ningún producto con el nombre '{nombre}'")
         
-        # Botón Buscar
-        btn_buscar = tk.Button(
-            button_frame,
+        btn_frame = tk.Frame(ventana, bg=self.bg_color)
+        btn_frame.pack(pady=20)
+        
+        tk.Button(
+            btn_frame,
             text="Buscar",
             command=buscar,
-            font=("Arial", 10, "bold"),
             bg=self.button_color,
             fg="white",
+            font=("Arial", 10),
             width=12,
             cursor="hand2"
-        )
-        btn_buscar.pack(side=tk.LEFT, padx=5)
+        ).pack(side=tk.LEFT, padx=5)
         
-        # Botón Cancelar
-        btn_cancelar = tk.Button(
-            button_frame,
+        tk.Button(
+            btn_frame,
             text="Cancelar",
             command=ventana.destroy,
-            font=("Arial", 10),
             bg="#95a5a6",
             fg="white",
+            font=("Arial", 10),
             width=12,
             cursor="hand2"
-        )
-        btn_cancelar.pack(side=tk.LEFT, padx=5)
+        ).pack(side=tk.LEFT, padx=5)
     
     def stock_bajo(self):
         """
         Función para mostrar productos con stock bajo.
         """
-        messagebox.showinfo(
-            "Stock Bajo",
-            "Funcionalidad 'Productos con Stock Bajo'\n(Pendiente de implementación)"
+        productos_bajo = self.inventario.obtener_productos_stock_bajo()
+        
+        if not productos_bajo:
+            messagebox.showinfo(
+                "Stock Adecuado",
+                f"Todos los productos tienen stock suficiente (mínimo: {self.inventario.stock_minimo} unidades)"
+            )
+            return
+        
+        ventana = tk.Toplevel(self.root)
+        ventana.title("Productos con Stock Bajo")
+        ventana.geometry("600x400")
+        ventana.configure(bg=self.bg_color)
+        
+        tk.Label(
+            ventana,
+            text=f"⚠️ Productos con Stock Bajo (<{self.inventario.stock_minimo} unidades)",
+            font=("Arial", 14, "bold"),
+            bg=self.bg_color,
+            fg="#e74c3c"
+        ).pack(pady=15)
+        
+        frame = tk.Frame(ventana)
+        frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+        
+        scrollbar = tk.Scrollbar(frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        tree = ttk.Treeview(
+            frame,
+            columns=("Nombre", "Precio", "Cantidad"),
+            show="headings",
+            yscrollcommand=scrollbar.set
         )
+        scrollbar.config(command=tree.yview)
+        
+        tree.heading("Nombre", text="Nombre")
+        tree.heading("Precio", text="Precio ($)")
+        tree.heading("Cantidad", text="Cantidad")
+        
+        tree.column("Nombre", width=300)
+        tree.column("Precio", width=120, anchor="center")
+        tree.column("Cantidad", width=120, anchor="center")
+        
+        for producto in productos_bajo:
+            tree.insert("", tk.END, values=(
+                producto["nombre"],
+                f"{producto['precio']:.2f}",
+                producto["cantidad"]
+            ))
+        
+        tree.pack(fill=tk.BOTH, expand=True)
+        
+        tk.Label(
+            ventana,
+            text=f"Total de productos con stock bajo: {len(productos_bajo)}",
+            font=("Arial", 10, "bold"),
+            bg=self.bg_color
+        ).pack(pady=10)
     
     def reporte_inventario(self):
         """
         Función para generar reporte de inventario.
         """
-        messagebox.showinfo(
-            "Reporte de Inventario",
-            "Funcionalidad 'Reporte de Inventario'\n(Pendiente de implementación)"
-        )
+        total_productos = self.inventario.obtener_total_productos()
+        total_unidades = self.inventario.obtener_cantidad_total()
+        valor_total = self.inventario.obtener_valor_total()
+        productos_bajo = len(self.inventario.obtener_productos_stock_bajo())
+        
+        mensaje = "═══════════════════════════════════\n"
+        mensaje += "     REPORTE DE INVENTARIO\n"
+        mensaje += "═══════════════════════════════════\n\n"
+        mensaje += f"Total de productos: {total_productos}\n"
+        mensaje += f"Total de unidades: {total_unidades}\n"
+        mensaje += f"Valor total: ${valor_total:.2f}\n"
+        mensaje += f"Productos con stock bajo: {productos_bajo}\n"
+        
+        if total_productos > 0:
+            promedio = valor_total / total_productos
+            mensaje += f"Valor promedio por producto: ${promedio:.2f}\n"
+        
+        mensaje += "\n═══════════════════════════════════"
+        
+        messagebox.showinfo("Reporte de Inventario", mensaje)
     
     def salir(self):
         """
