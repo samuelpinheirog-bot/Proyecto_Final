@@ -469,8 +469,9 @@ class SistemaGestionStock:
             command=eliminar,
             bg="#e74c3c",
             fg="white",
-            font=("Arial", 10),
+            font=("Arial", 11),
             width=12,
+            height=2,
             cursor="hand2"
         ).pack(side=tk.LEFT, padx=5)
         
@@ -480,8 +481,9 @@ class SistemaGestionStock:
             command=ventana.destroy,
             bg="#95a5a6",
             fg="white",
-            font=("Arial", 10),
+            font=("Arial", 11),
             width=12,
+            height=2,
             cursor="hand2"
         ).pack(side=tk.LEFT, padx=5)
     
@@ -541,8 +543,9 @@ class SistemaGestionStock:
             command=buscar,
             bg=self.button_color,
             fg="white",
-            font=("Arial", 10),
+            font=("Arial", 11),
             width=12,
+            height=2,
             cursor="hand2"
         ).pack(side=tk.LEFT, padx=5)
         
@@ -552,8 +555,9 @@ class SistemaGestionStock:
             command=ventana.destroy,
             bg="#95a5a6",
             fg="white",
-            font=("Arial", 10),
+            font=("Arial", 11),
             width=12,
+            height=2,
             cursor="hand2"
         ).pack(side=tk.LEFT, padx=5)
     
