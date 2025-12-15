@@ -279,7 +279,7 @@ class SistemaGestionStock:
         
         ventana = tk.Toplevel(self.root)
         ventana.title("Actualizar Stock")
-        ventana.geometry("400x250")
+        ventana.geometry("400x300")
         ventana.resizable(False, False)
         ventana.configure(bg=self.bg_color)
         
@@ -304,33 +304,80 @@ class SistemaGestionStock:
         )
         combo_productos.grid(row=0, column=1, pady=5)
         
-        tk.Label(form_frame, text="Nueva Cantidad:", font=("Arial", 10), bg=self.bg_color).grid(row=1, column=0, sticky="w", pady=5)
+        tk.Label(form_frame, text="Nuevo Precio:", font=("Arial", 10), bg=self.bg_color).grid(row=1, column=0, sticky="w", pady=5)
+        entry_precio = tk.Entry(form_frame, font=("Arial", 10), width=30)
+        entry_precio.grid(row=1, column=1, pady=5)
+        
+        tk.Label(form_frame, text="Nueva Cantidad:", font=("Arial", 10), bg=self.bg_color).grid(row=2, column=0, sticky="w", pady=5)
         entry_cantidad = tk.Entry(form_frame, font=("Arial", 10), width=30)
-        entry_cantidad.grid(row=1, column=1, pady=5)
+        entry_cantidad.grid(row=2, column=1, pady=5)
+        
+        def cargar_datos(event):
+            """Carga los datos actuales del producto seleccionado"""
+            nombre = combo_productos.get()
+            if nombre:
+                producto = self.inventario.buscar_producto(nombre)
+                if producto:
+                    entry_precio.delete(0, tk.END)
+                    entry_precio.insert(0, str(producto['precio']))
+                    entry_cantidad.delete(0, tk.END)
+                    entry_cantidad.insert(0, str(producto['cantidad']))
+        
+        combo_productos.bind('<<ComboboxSelected>>', cargar_datos)
         
         def actualizar():
             nombre = combo_productos.get()
+            precio_str = entry_precio.get().strip()
             cantidad_str = entry_cantidad.get().strip()
             
-            if not nombre or not cantidad_str:
-                messagebox.showerror("Error", "Debe seleccionar un producto e ingresar una cantidad")
+            if not nombre:
+                messagebox.showerror("Error", "Debe seleccionar un producto")
                 return
             
-            try:
-                cantidad = int(cantidad_str)
-                
-                if cantidad < 0:
-                    messagebox.showerror("Error", "La cantidad no puede ser negativa")
+            if not precio_str and not cantidad_str:
+                messagebox.showerror("Error", "Debe ingresar al menos un valor para actualizar")
+                return
+            
+            producto = self.inventario.buscar_producto(nombre)
+            if not producto:
+                messagebox.showerror("Error", "Producto no encontrado")
+                return
+            
+            actualizado = False
+            mensajes = []
+            
+            # Actualizar precio si se ingresó
+            if precio_str:
+                try:
+                    precio = float(precio_str)
+                    if precio <= 0:
+                        messagebox.showerror("Error", "El precio debe ser mayor a 0")
+                        return
+                    producto['precio'] = precio
+                    mensajes.append(f"Precio: ${precio:.2f}")
+                    actualizado = True
+                except ValueError:
+                    messagebox.showerror("Error", "El precio debe ser un número válido")
                     return
-                
-                if self.inventario.actualizar_stock(nombre, cantidad):
-                    messagebox.showinfo("Éxito", f"Stock de '{nombre}' actualizado a {cantidad} unidades")
-                    ventana.destroy()
-                else:
-                    messagebox.showerror("Error", "No se pudo actualizar el stock")
-                    
-            except ValueError:
-                messagebox.showerror("Error", "La cantidad debe ser un número válido")
+            
+            # Actualizar cantidad si se ingresó
+            if cantidad_str:
+                try:
+                    cantidad = int(cantidad_str)
+                    if cantidad < 0:
+                        messagebox.showerror("Error", "La cantidad no puede ser negativa")
+                        return
+                    if self.inventario.actualizar_stock(nombre, cantidad):
+                        mensajes.append(f"Cantidad: {cantidad} unidades")
+                        actualizado = True
+                except ValueError:
+                    messagebox.showerror("Error", "La cantidad debe ser un número válido")
+                    return
+            
+            if actualizado:
+                mensaje_final = f"Producto '{nombre}' actualizado:\n" + "\n".join(mensajes)
+                messagebox.showinfo("Éxito", mensaje_final)
+                ventana.destroy()
         
         btn_frame = tk.Frame(ventana, bg=self.bg_color)
         btn_frame.pack(pady=20)
